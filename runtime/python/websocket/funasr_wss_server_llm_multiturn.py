@@ -304,7 +304,9 @@ async def model_inference(
     contents_i.append({"role": "user", "content": user_prompt, "audio": audio_in})
     contents_i.append({"role": "assistant", "content": "target_out"})
 
-    turn_num = websocket_users[websocket].get("turn_num", 5)
+    turn_num = websocket_users[websocket].get("max_turn_num", 5)
+    if len(websocket_users[websocket].get("user_prompt", "")) > 0:
+        turn_num = 1
     if len(contents_i) > 2 * turn_num + 1:
         print(
             f"clip dialog pairs from: {len(contents_i)} to: {turn_num}, \ncontents_i_before_clip: {contents_i}"
@@ -495,12 +497,15 @@ async def ws_serve(websocket, path):
             if websocket_users[websocket].get("is_close", False):
                 print(f'is_close: {websocket_users[websocket].get("is_close", False)}')
                 websocket.stop_send = True
-                del websocket_users[websocket]
-                # await ws_reset(websocket)
+                # del websocket_users[websocket]
+                await ws_reset(websocket)
 
     except websockets.ConnectionClosed:
         print("ConnectionClosed...", websocket_users, flush=True)
-        await ws_reset(websocket)
+        try:
+            await ws_reset(websocket)
+        except Exception as e:
+            print("Exception:", e)
 
     except websockets.InvalidState:
         print("InvalidState...")
